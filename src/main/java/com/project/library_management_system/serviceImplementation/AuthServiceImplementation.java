@@ -1,9 +1,16 @@
 package com.project.library_management_system.serviceImplementation;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
+import com.project.library_management_system.model.User;
 import com.project.library_management_system.services.JWTService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -32,25 +39,28 @@ public class AuthServiceImplementation implements AuthService{
     private AuthenticationManager authManager;
 
     @Override
-    public String loginUser(LoginDTO loginDTO) {
-//        Optional<userEntity> userOpt = userrepository.findByUsername(loginDTO.getUsername());
-//        if(userOpt.isPresent() && passwordEncoder.matches(loginDTO.getPassword(),userOpt.get().getPassword())){
-//            return "Login Successfull";
-//        }
-//        throw new RuntimeException("Invalid email or password");
+    public ResponseEntity<Map<String, Object>> loginUser(LoginDTO loginDTO) {
+        Map<String, Object> response = new HashMap<>();
         Authentication authentication =
                 authManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
                                 loginDTO.getUsername(),loginDTO.getPassword()));
         if(authentication.isAuthenticated()){
-            return jwtService.generateToken(loginDTO.getUsername());
+            Optional<userEntity> userOpt = userrepository.findByUsername(loginDTO.getUsername());
+            userEntity user = userOpt.get();
+            String role = user.getRole();
+            String token= jwtService.generateToken(loginDTO.getUsername(), role);
+
+            response.put("status","success");
+            response.put("message", "Login successful");
+            response.put("token", token);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
         else{
-            return "Failed";
+            response.put("status","failed");
+            response.put("message", "Authentication failed");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
-
-        // return "Please try with proper credentials";
-        
     }
     
 }

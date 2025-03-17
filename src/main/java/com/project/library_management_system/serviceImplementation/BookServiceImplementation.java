@@ -20,26 +20,29 @@ public class BookServiceImplementation implements BookService {
 
     @Override
     public Book saveBook(Book book) {
-        Optional<BookEntity> existingBook = bookrepository.findByIsbn(book.getIsbn());
-        if(existingBook.isPresent()){
-            BookEntity bookEntity = existingBook.get();
-            bookEntity.setCopies_available(bookEntity.getCopies_available() + book.getCopies_available());
-            BookEntity updatedEntity = bookrepository.save(bookEntity);
-
-            Book updatedBook = new Book();
-
-            BeanUtils.copyProperties(updatedEntity,updatedBook);
-            return updatedBook;
+        if (book == null || book.getIsbn() == null) {
+            throw new IllegalArgumentException("Book or ISBN cannot be null");
+        }
+        Optional<BookEntity> existingBookOpt = bookrepository.findByIsbn(book.getIsbn());
+        BookEntity bookEntity;
+        if (existingBookOpt.isPresent()) {
+            bookEntity = existingBookOpt.get();
+            int currentCopies = bookEntity.getCopies_available();
+            int newCopies = book.getCopies_available();
+            bookEntity.setCopies_available(currentCopies + newCopies);
         }
         else {
-            BookEntity bookEntity = new BookEntity();
+            bookEntity = new BookEntity();
             BeanUtils.copyProperties(book, bookEntity);
-            BookEntity savedEntity = bookrepository.save(bookEntity);
-            Book savedBook = new Book();
-            BeanUtils.copyProperties(savedEntity, savedBook);
-            return savedBook;
+            bookEntity.setCopies_available(book.getCopies_available() > 0 ? book.getCopies_available() : 0);
         }
+
+        BookEntity savedEntity = bookrepository.save(bookEntity);
+        Book savedBook = new Book();
+        BeanUtils.copyProperties(savedEntity, savedBook);
+        return savedBook;
     }
+
 
     @Override
     public Page<Book> getAllBooks(int page, int size) {

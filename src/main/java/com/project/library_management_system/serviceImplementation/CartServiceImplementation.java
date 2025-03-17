@@ -16,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -37,6 +38,7 @@ public class CartServiceImplementation implements CartService {
         Map<String,Object> response = new HashMap<>();
         String username = getLoggedInUsername();
 
+
         Optional<userEntity> userOpt = userRepository.findByUsername(username);
 
         if(userOpt.isEmpty()){
@@ -47,6 +49,11 @@ public class CartServiceImplementation implements CartService {
 
         userEntity user = userOpt.get();
 
+        if(cartRepository.countByUser(user) >=2){
+            response.put("status", "error");
+            response.put("message","Your cart cannot contain more than 2 books");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
         Optional<BookEntity> bookOpt = bookRepository.findById(Id);
         if(bookOpt.isEmpty()){
             response.put("status","error");
@@ -64,7 +71,6 @@ public class CartServiceImplementation implements CartService {
         CartEntity cartItem = new CartEntity();
         cartItem.setUser(user);
         cartItem.setBook(book);
-        cartItem.setStatus("IN_CART");
         cartRepository.save(cartItem);
 
         response.put("status","success");
@@ -88,29 +94,22 @@ public class CartServiceImplementation implements CartService {
             response.put("message","Your cart is empty");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         }
-
         List<Map<String, Object>> cartResponse = cartItems.stream().map(cartItem -> {
             Map<String, Object> cartMap = new HashMap<>();
-
             Map<String, Object> bookInfo = new HashMap<>();
             bookInfo.put("id",cartItem.getBook().getId());
             bookInfo.put("title",cartItem.getBook().getTitle());
             bookInfo.put("author",cartItem.getBook().getAuthor());
             bookInfo.put("isbn",cartItem.getBook().getIsbn());
             bookInfo.put("imageUrl",cartItem.getBook().getImage_url());
-
             cartMap.put("book",bookInfo);
             cartMap.put("addedDate",cartItem.getAddedDate());
-
             return cartMap;
-
         }).toList();
-
         response.put("cartItems", cartResponse);
         response.put("status","success");
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
-
     @Override
     public String getLoggedInUsername() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -121,7 +120,6 @@ public class CartServiceImplementation implements CartService {
             return principal.toString();
         }
     }
-
     @Override
     public ResponseEntity<Map<String, Object>> deleteCartItem(Long id) {
         String username = getLoggedInUsername();
@@ -138,9 +136,7 @@ public class CartServiceImplementation implements CartService {
             response.put("message", "Delete Unsuccessful as item not found in cart");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
-
     }
-
     @Override
     public ResponseEntity<Map<String, Object>> checkout() {
         Map<String, Object> response = new HashMap<>();
@@ -169,34 +165,35 @@ public class CartServiceImplementation implements CartService {
             return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(response);
         }
 
+        List<Map<String, Object>> skippedBooks = new ArrayList<>();
         List<Map<String,Object>> processedBooks = new ArrayList<>();
         for (CartEntity cartItem : cartItems){
             BookEntity book = cartItem.getBook();
 
             if(book.getCopies_available() <= 0){
-                response.put("status","error");
-                response.put("message","Book '" + book.getTitle() + "' is out of stock ");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                Map<String, Object> skippedBook = new HashMap<>();
+                skippedBook.put("bookId", book.getId());
+                skippedBook.put("title", book.getTitle());
+                skippedBook.put("status", "Out of stock");
+                skippedBooks.add(skippedBook);
+                continue;
             }
 
+            response.put("skippedBooks", skippedBooks);
             book.setCopies_available(book.getCopies_available() - 1);
             bookRepository.save(book);
-
-            cartItem.setStatus("CHECKED_OUT");
-            cartRepository.save(cartItem);
 
             LendingEntity lending = new LendingEntity();
             lending.setUser(user);
             lending.setBook(book);
-            lending.setBorrowDate(new Date());
-
-
-            Calendar calendar = Calendar.getInstance();
-            calendar.add(Calendar.DAY_OF_MONTH, 15);
-            lending.setReturnDate(calendar.getTime());
-
+            lending.setBorrowDate(LocalDate.now());
+            lending.setDueDate(LocalDate.now().plusDays(2));
+            lending.setReturnDate(null);
+            lending.setCollected(false);
             lending.setStatus("ACTIVE");
             lendingRepository.save(lending);
+
+            cartRepository.delete(cartItem);
 
             Map<String,Object> bookDetails = new HashMap<>();
             bookDetails.put("bookId", book.getId());
@@ -210,6 +207,6 @@ public class CartServiceImplementation implements CartService {
         response.put("books", processedBooks);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
-
     }
+
 }

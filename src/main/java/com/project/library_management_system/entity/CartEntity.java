@@ -18,12 +18,10 @@ public class CartEntity {
     private userEntity user;
 
     @ManyToOne
-    @JoinColumn(name="bookId",nullable = false)
+    @JoinColumn(name="bookId",referencedColumnName = "id", nullable = false)
     private BookEntity book;
 
     @Column(nullable = false)
     private LocalDateTime addedDate=LocalDateTime.now();
 
-    @Column(nullable = false)
-    private String status = "IN_CART";
 }

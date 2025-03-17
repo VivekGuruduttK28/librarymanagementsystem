@@ -3,6 +3,7 @@ package com.project.library_management_system.Filter;
 import com.project.library_management_system.model.UserPrincipal;
 import com.project.library_management_system.serviceImplementation.userServiceImplementation;
 import com.project.library_management_system.services.JWTService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,16 +39,21 @@ public class JWTFilter extends OncePerRequestFilter {
         if(authHeader != null && authHeader.startsWith("Bearer ")){
             token=authHeader.substring(7);
             username = jwtService.extractUsername(token);
+            System.out.println("HELLO JWT1");
         }
-
+        System.out.println("HELLO JWT2");
         if(username !=null && SecurityContextHolder.getContext().getAuthentication() == null){
             UserDetails userDetails=context.getBean(userServiceImplementation.class).loadUserByUsername(username);
+            Claims claims = jwtService.extractAllClaims(token);
+            String role = claims.get("role", String.class);
+            System.out.println(role);
             if(jwtService.validateToken(token, userDetails)){
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,null,userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                request.setAttribute("role",role);
             }
         }
         filterChain.doFilter(request,response);

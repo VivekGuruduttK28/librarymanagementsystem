@@ -1,10 +1,9 @@
 package com.project.library_management_system.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 @Entity
@@ -12,6 +11,8 @@ import java.util.Date;
 @Data
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class LendingEntity {
 
     @Id
@@ -19,19 +20,25 @@ public class LendingEntity {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "userId", nullable = false)
     private userEntity user;
 
     @ManyToOne
-    @JoinColumn(name = "book_id", nullable = false)
+    @JoinColumn(name = "bookId",referencedColumnName = "id", nullable = false)
     private BookEntity book;
 
     @Temporal(TemporalType.DATE)
-    private Date borrowDate;
+    private LocalDate borrowDate;
 
     @Temporal(TemporalType.DATE)
-    private Date returnDate;
+    private LocalDate returnDate;
+
+    @Temporal(TemporalType.DATE)
+    private LocalDate dueDate;
 
     @Column
-    private String Status;
+    private boolean collected = false;
+
+    @Column
+    private String status = "ACTIVE";
 }

@@ -5,9 +5,12 @@ import com.project.library_management_system.entity.userEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
 public interface LendingRepository extends JpaRepository<LendingEntity, Long> {
     List<LendingEntity> findByUser(userEntity user);
+
+    List<LendingEntity> findByDueDate(LocalDate remainderDate);
 }

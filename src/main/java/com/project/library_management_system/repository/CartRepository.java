@@ -22,4 +22,6 @@ public interface CartRepository extends JpaRepository<CartEntity, Long> {
     @Modifying
     @Query("DELETE from CartEntity c WHERE c.user.username = :username AND c.book.id=:bookId")
     int deleteByUsernameAndBookId(@Param("username")String username,@Param("bookId") Long bookId);
+
+    int countByUser(userEntity user);
 }

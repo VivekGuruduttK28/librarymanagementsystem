@@ -57,16 +57,6 @@ public class userServiceImplementation implements userService {
         List<User> users = new ArrayList<>();
         for(userEntity u: userList){
             User user = new User();
-            // user.setId(u.getId());
-            // user.setName(u.getName());
-            // user.setPhone(u.getPhone());
-            // user.setRole(u.getRole());
-            // user.setEmail(u.getEmail());
-
-            // user.setAddress(u.getAddress());
-            // user.setPassword(u.getPassword());
-            // users.add(user);
-
             BeanUtils.copyProperties(u, user);
             users.add(user);
         }

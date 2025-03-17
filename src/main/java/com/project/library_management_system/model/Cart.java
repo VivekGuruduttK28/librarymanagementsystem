@@ -14,5 +14,4 @@ public class Cart {
     private Long userId;
     private Long bookId;
     private LocalDateTime addedDate;
-    private String status;
 }
