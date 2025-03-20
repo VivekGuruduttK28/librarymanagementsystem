@@ -30,13 +30,9 @@ public class JWTService {
         catch(NoSuchAlgorithmException e){
             throw new RuntimeException(e);
         }
-
     }
-
-
-    public String generateToken(String username, String role) {
+    public String generateToken(String username) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role",role);
         return Jwts.builder()
                 .claims()
                 .add(claims)
@@ -47,17 +43,13 @@ public class JWTService {
                 .signWith(getKey())
                 .compact();
     }
-
-
     private SecretKey getKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
-
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
-
     private<T> T extractClaim(String token, Function<Claims, T> claimResolver) {
         final Claims claims = extractAllClaims(token);
         return claimResolver.apply(claims);

@@ -16,6 +16,4 @@ public interface BookRepository extends JpaRepository<BookEntity,Long> {
     Page<BookEntity> findByTitleContainingIgnoreCase(String title, Pageable pageable);
     Page<BookEntity> findByAuthorContainingIgnoreCase(String author, Pageable pageable);
     Optional<BookEntity> findByIsbn(String isbn);
-
-
 }

@@ -44,16 +44,12 @@ public class JWTFilter extends OncePerRequestFilter {
         System.out.println("HELLO JWT2");
         if(username !=null && SecurityContextHolder.getContext().getAuthentication() == null){
             UserDetails userDetails=context.getBean(userServiceImplementation.class).loadUserByUsername(username);
-            Claims claims = jwtService.extractAllClaims(token);
-            String role = claims.get("role", String.class);
-            System.out.println(role);
             if(jwtService.validateToken(token, userDetails)){
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,null,userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                request.setAttribute("role",role);
             }
         }
         filterChain.doFilter(request,response);

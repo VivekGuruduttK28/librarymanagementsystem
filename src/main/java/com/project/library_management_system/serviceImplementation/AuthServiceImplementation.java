@@ -2,19 +2,15 @@ package com.project.library_management_system.serviceImplementation;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
-import com.project.library_management_system.model.User;
 import com.project.library_management_system.services.JWTService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -49,11 +45,12 @@ public class AuthServiceImplementation implements AuthService{
             Optional<userEntity> userOpt = userrepository.findByUsername(loginDTO.getUsername());
             userEntity user = userOpt.get();
             String role = user.getRole();
-            String token= jwtService.generateToken(loginDTO.getUsername(), role);
+            String token= jwtService.generateToken(loginDTO.getUsername());
 
             response.put("status","success");
             response.put("message", "Login successful");
             response.put("token", token);
+            response.put("role",role);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
         else{

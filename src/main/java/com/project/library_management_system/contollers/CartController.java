@@ -14,21 +14,14 @@ public class CartController {
     @Autowired
     CartService cartService;
 
-    @GetMapping
-    public String getUsername(){
-        return cartService.getLoggedInUsername();
-    }
-
     @PostMapping("/add/{id}")
     public ResponseEntity<Map<String,Object>> addToCart(@PathVariable Long id){
         return cartService.addToCart(id);
     }
-
     @GetMapping("/display")
     public ResponseEntity<Map<String,Object>> getCartItems(){
         return cartService.getCartItems();
     }
-
     @DeleteMapping("/removeItem/{id}")
     public ResponseEntity<Map<String,Object>> deleteCartItem(@PathVariable Long id){
         return cartService.deleteCartItem(id);

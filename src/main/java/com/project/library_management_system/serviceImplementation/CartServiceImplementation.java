@@ -22,72 +22,66 @@ import java.util.*;
 @Service
 public class CartServiceImplementation implements CartService {
     @Autowired
-    userRepository userRepository;
-
-    @Autowired
-    BookRepository bookRepository;
-
+    userRepository userrepository;
     @Autowired
     CartRepository cartRepository;
-
+    @Autowired
+    BookRepository bookRepository;
     @Autowired
     LendingRepository lendingRepository;
-
     @Override
-    public ResponseEntity<Map<String, Object>> addToCart(Long Id) {
-        Map<String,Object> response = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> addToCart(Long id) {
+        Map<String, Object> response = new HashMap<>();
         String username = getLoggedInUsername();
-
-
-        Optional<userEntity> userOpt = userRepository.findByUsername(username);
-
-        if(userOpt.isEmpty()){
-            response.put("status","error");
-            response.put("message","User not found");
+        Optional<userEntity> userOpt = userrepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            response.put("status", "error");
+            response.put("message", "User not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
-
         userEntity user = userOpt.get();
-
-        if(cartRepository.countByUser(user) >=2){
+        if (cartRepository.countByUser(user) >= 2) {
             response.put("status", "error");
-            response.put("message","Your cart cannot contain more than 2 books");
+            response.put("message", "Your cart cannot contain more than 2 books");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
-        Optional<BookEntity> bookOpt = bookRepository.findById(Id);
-        if(bookOpt.isEmpty()){
-            response.put("status","error");
-            response.put("message","Book not found");
+        Optional<BookEntity> bookOpt = bookRepository.findById(id);
+        if (bookOpt.isEmpty()) {
+            response.put("status", "error");
+            response.put("message", "book not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
         BookEntity book = bookOpt.get();
-
-        Optional<CartEntity> existingCartItem = cartRepository.findByUserAndBook(user,book);
-        if(existingCartItem.isPresent()){
-            response.put("status","error");
-            response.put("message","Book is already in cart");
+        Optional<CartEntity> existingCartItem = cartRepository.findByUserAndBook(user, book);
+        if (existingCartItem.isPresent()) {
+            response.put("status", "error");
+            response.put("message", "Book is already in cart");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
         CartEntity cartItem = new CartEntity();
         cartItem.setUser(user);
         cartItem.setBook(book);
         cartRepository.save(cartItem);
-
-        response.put("status","success");
-        response.put("message","Book added to cart successfully");
-
+        response.put("status", "success");
+        response.put("message", "Cart successfully created");
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-
+    @Override
+    public String getLoggedInUsername() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(principal instanceof UserDetails){
+            return ((UserDetails)principal).getUsername();
+        }
+        else{
+            return principal.toString();
+        }
+    }
     @Override
     public ResponseEntity<Map<String,Object>> getCartItems() {
         Map<String,Object> response = new HashMap<>();
         String username = getLoggedInUsername();
-
-        userEntity user = userRepository.findByUsername(username).orElseThrow();
-
+        userEntity user = userrepository.findByUsername(username).orElseThrow();
         List<CartEntity> cartItems = cartRepository.findByUser(user);
-
         if(cartItems.isEmpty()){
             response.put("cartItems", Collections.emptyList());
             response.put("status","success");
@@ -111,16 +105,6 @@ public class CartServiceImplementation implements CartService {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
     @Override
-    public String getLoggedInUsername() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(principal instanceof UserDetails){
-            return ((UserDetails) principal).getUsername();
-        }
-        else{
-            return principal.toString();
-        }
-    }
-    @Override
     public ResponseEntity<Map<String, Object>> deleteCartItem(Long id) {
         String username = getLoggedInUsername();
         int deletedCount=cartRepository.deleteByUsernameAndBookId(username,id);
@@ -141,14 +125,23 @@ public class CartServiceImplementation implements CartService {
     public ResponseEntity<Map<String, Object>> checkout() {
         Map<String, Object> response = new HashMap<>();
         String username = getLoggedInUsername();
-        Optional<userEntity> userOpt = userRepository.findByUsername(username);
+        Optional<userEntity> userOpt = userrepository.findByUsername(username);
+        userEntity user =  userOpt.get();
+        List<LendingEntity> lendingOpt = lendingRepository.findByUser(user);
+        for(LendingEntity lending: lendingOpt){
+            if(!lending.getStatus().equals("RETURNED")){
+                response.put("status","error");
+                response.put("message","Please return previously borrowed books to borrow further");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+        }
         if(userOpt.isEmpty()){
             response.put("status","error");
             response.put("message","User not found");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
 
-        userEntity user =  userOpt.get();
+
         List<CartEntity> cartItems = cartRepository.findByUser(user);
 
         if(cartItems.isEmpty()){
@@ -169,7 +162,6 @@ public class CartServiceImplementation implements CartService {
         List<Map<String,Object>> processedBooks = new ArrayList<>();
         for (CartEntity cartItem : cartItems){
             BookEntity book = cartItem.getBook();
-
             if(book.getCopies_available() <= 0){
                 Map<String, Object> skippedBook = new HashMap<>();
                 skippedBook.put("bookId", book.getId());
@@ -178,16 +170,16 @@ public class CartServiceImplementation implements CartService {
                 skippedBooks.add(skippedBook);
                 continue;
             }
-
             response.put("skippedBooks", skippedBooks);
             book.setCopies_available(book.getCopies_available() - 1);
             bookRepository.save(book);
+//            cartRepository.save(cartItem);
 
             LendingEntity lending = new LendingEntity();
             lending.setUser(user);
             lending.setBook(book);
             lending.setBorrowDate(LocalDate.now());
-            lending.setDueDate(LocalDate.now().plusDays(2));
+            lending.setDueDate(LocalDate.now().plusDays(-2));
             lending.setReturnDate(null);
             lending.setCollected(false);
             lending.setStatus("ACTIVE");
@@ -207,6 +199,7 @@ public class CartServiceImplementation implements CartService {
         response.put("books", processedBooks);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
+
     }
 
 }

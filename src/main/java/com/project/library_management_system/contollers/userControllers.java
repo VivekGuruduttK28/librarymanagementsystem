@@ -1,5 +1,6 @@
 package com.project.library_management_system.contollers;
 
+import com.project.library_management_system.entity.userEntity;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -43,5 +44,9 @@ public class userControllers {
     public ResponseEntity<Map<String,Object>> deleteUser(@PathVariable Long id){
         return userservice.deleteUser(id);
     }
-    
+
+    @GetMapping("/user")
+    public ResponseEntity<userEntity> getUserDetails(){
+        return userservice.getUserDetails();
+    }
 }

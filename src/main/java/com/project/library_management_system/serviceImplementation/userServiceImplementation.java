@@ -10,6 +10,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -102,6 +103,24 @@ public class userServiceImplementation implements userService {
             response.put("status", "failure");
             response.put("message", "delete unsuccessful as userId not found");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    @Override
+    public ResponseEntity<userEntity> getUserDetails() {
+        String username = getLoggedInUsername();
+        userEntity userEntity = userrepository.findByUsername(username).get();
+        userEntity.setPassword(null);
+        return ResponseEntity.ok(userEntity);
+    }
+    @Override
+    public String getLoggedInUsername() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(principal instanceof UserDetails){
+            return ((UserDetails)principal).getUsername();
+        }
+        else{
+            return principal.toString();
         }
     }
 
